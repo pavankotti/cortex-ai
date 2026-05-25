@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cortex AI 
 
-## Getting Started
+![Cortex AI UI](./docs/images/ui-screenshot.png)
 
-First, run the development server:
+Cortex AI is a high-performance, event-driven chatbot application built with Next.js 16, designed for high-scale AI observability. It features a decoupled telemetry pipeline that ingests inference data into ClickHouse via Kafka, ensuring the core chat experience remains fast and reliable.
 
+## 📋 Prerequisites
+
+Before starting, ensure you have the following installed:
+- **Node.js** (v20 or higher)
+- **Docker & Docker Compose** (for Kafka and ClickHouse)
+- A **Groq API Key** (Get one at [console.groq.com](https://console.groq.com))
+
+## 🚀 Quick Start
+
+Follow these steps to get Cortex AI running on your machine:
+
+### 1. Clone & Install
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/pavankotti/cortex-ai.git
+cd cortex-ai
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Infrastructure (Kafka & ClickHouse)
+Spin up the analytical engines using Docker:
+```bash
+docker-compose up -d
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Environment Setup
+Create a `.env` file in the root directory and add your keys. 
+*Note: `dev.db` is a local SQLite file that Prisma will create and manage for you automatically.*
+```env
+GROQ_API_KEY=gsk_...
+DATABASE_URL="file:./dev.db"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Initialize Data Layers
+This syncs your local SQLite schema and initializes the ClickHouse telemetry tables:
+```bash
+# Sync SQLite (Application State)
+npx prisma db push
 
-## Learn More
+# Sync ClickHouse & Kafka (Telemetry)
+npm run db:init
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Run the System
+You need **two** terminal windows:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Terminal 1 (Ingestion Worker):**
+```bash
+npm run ingest
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Terminal 2 (Web App):**
+```bash
+npm run dev
+```
+Visit [http://localhost:3000](http://localhost:3000) to start chatting!
 
-## Deploy on Vercel
+## 📊 Monitoring & Dashboards
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Cortex AI comes with pre-configured monitoring via Grafana.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Access Grafana:** [http://localhost:3001](http://localhost:3001)
+2. **Login:** User: `admin` / Password: `admin`
+3. **Data Source:** The ClickHouse data source is automatically provisioned.
+
+### Persisting your Dashboards
+To ensure your dashboards are saved in the repository and available to others:
+1. Open your dashboard in Grafana.
+2. Go to **Dashboard Settings** (gear icon) -> **JSON Model**.
+3. Copy the entire JSON.
+4. Create a new file (e.g., `telemetry.json`) in the `/grafana/dashboards/` directory of this project.
+5. Paste the JSON there.
+6. Next time you run `docker-compose up`, the dashboard will be automatically imported!
+
+---
+Built with Groq, Vercel AI SDK, Prisma, and ClickHouse.
+For technical details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
